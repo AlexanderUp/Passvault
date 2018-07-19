@@ -263,8 +263,18 @@ class Entry(Passvault.Vault):
 		# 	print('Successfully deleted!')
 		# return None
 
-	def get_list_of_entries(self):
-		pass
+	def get_list_of_entries(self, conn, cur):
+		try:
+			cur.execute('SELECT id, account_name FROM password')
+		except sqlite3.DatabaseError as err:
+			print('Error: {}'.format(err))
+		else:
+			list_of_entries = cur.fetchall() # tuple returned!
+			print('list_of_entries variable: {}'.format(list_of_entries))
+			print('Available entries:')
+			for entry in list_of_entries:
+				print('#', entry[0], ':', entry[1])
+		return None
 
 	# update password for specified entry
 	def update_password(self):

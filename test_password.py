@@ -91,6 +91,11 @@ def test_delete_entry():
     id_ = input('Enter id of string to be deleted... \n>>> ')
     return a.delete_entry(conn, cur, id_)
 
+def test_get_list_of_entries():
+    a = password.Entry()
+    conn, cur = a.connect_to_vault()
+    return a.get_list_of_entries(conn, cur)
+
 if __name__ == '__main__':
     print('=' * 75)
     # t = password.Entry()
@@ -104,4 +109,5 @@ if __name__ == '__main__':
     # v = test_get_entry_key()
     # print('key: {}'.format(v))
     # test_update_entry()
-    test_delete_entry()
+    # test_delete_entry()
+    test_get_list_of_entries()
