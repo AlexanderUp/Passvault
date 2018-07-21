@@ -96,6 +96,13 @@ def test_get_list_of_entries():
     conn, cur = a.connect_to_vault()
     return a.get_list_of_entries(conn, cur)
 
+def test_update_password():
+    a = password.Entry()
+    conn, cur = a.connect_to_vault()
+    return a.update_password(conn, cur, id_=3)
+
+
+
 if __name__ == '__main__':
     print('=' * 75)
     # t = password.Entry()
@@ -110,4 +117,5 @@ if __name__ == '__main__':
     # print('key: {}'.format(v))
     # test_update_entry()
     # test_delete_entry()
-    test_get_list_of_entries()
+    # test_get_list_of_entries()
+    test_update_password()

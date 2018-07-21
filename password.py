@@ -270,15 +270,42 @@ class Entry(Passvault.Vault):
 			print('Error: {}'.format(err))
 		else:
 			list_of_entries = cur.fetchall() # tuple returned!
-			print('list_of_entries variable: {}'.format(list_of_entries))
 			print('Available entries:')
+			print('-id-  ----name----')
 			for entry in list_of_entries:
 				print('#', entry[0], ':', entry[1])
 		return None
 
 	# update password for specified entry
-	def update_password(self):
-		pass
+	def update_password(self, conn, cur, id_):
+		new_password = Random.new().read(PASSWORD_SIZE)
+		enc_key = self.password_decrypt(conn, cur)
+		print('Got entry key: {}'.format(enc_key))
+		encrypted_password = self.pre_encrypt_data(new_password)
+		iv = self.iv()
+		encrypted_password = self.encrypt(enc_key, iv, encrypted_password)
+		encrypted_password = self.post_encrypt_data(encrypted_password)
+		# copy entry to be updated into trashbin table
+		try:
+			cur.execute('SELECT * FROM password WHERE id=(?)', (id_,))
+			entry = cur.fetchone()
+			print('Got entry: {}'.format(entry))
+			ins = 'INSERT INTO trashbin(previous_id, group_id, account_name, login, url, enc_password, memo) VALUES(?, ?, ?, ?, ?, ?, ?)'
+			cur.execute(ins, entry)
+			print('Successfully inserted!')
+		except sqlite3.DatabaseError as err:
+			print('Error: {}'.format(err))
+		else:
+			try:
+				cur.execute('UPDATE password SET enc_password=(?) WHERE id=(?)', (encrypted_password, id_))
+				conn.commit()
+				print('Successfully updated!')
+			except sqlite3.DatabaseError as err:
+				print('Error: {}'.format(err))
+		finally:
+			del new_password
+			del enc_key
+		return None
 
 	# checks time passed since entry deletion and finally deletes entry if neccessary
 	def cleanup():
