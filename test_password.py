@@ -101,6 +101,11 @@ def test_update_password():
     conn, cur = a.connect_to_vault()
     return a.update_password(conn, cur, id_=3)
 
+def test_cleanup():
+    a = password.Entry()
+    conn, cur = a.connect_to_vault()
+    return a.cleanup(conn, cur)
+
 
 
 if __name__ == '__main__':
@@ -118,4 +123,5 @@ if __name__ == '__main__':
     # test_update_entry()
     # test_delete_entry()
     # test_get_list_of_entries()
-    test_update_password()
+    # test_update_password()
+    test_cleanup()

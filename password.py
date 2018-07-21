@@ -30,6 +30,7 @@ from Crypto import Random
 DIRECTORY = '/Users/imac/Desktop/Python - my projects/Passvault'
 PASSWORD_SIZE = 32
 DATABASE_NAME = 'vault_db.sqlite3'
+MAX_ROW_COUNT = 100
 
 
 print('=' * 75)
@@ -308,8 +309,21 @@ class Entry(Passvault.Vault):
 		return None
 
 	# checks time passed since entry deletion and finally deletes entry if neccessary
-	def cleanup():
-		pass
+	def cleanup(self, conn, cur):
+		try:
+			cur.execute('SELECT COUNT(id) FROM trashbin')
+			row_count = cur.fetchone()
+			row_count = row_count[0]
+			print('Current row count is: {}'.format(row_count))
+			if row_count >= MAX_ROW_COUNT:
+				for i in range(MAX_ROW_COUNT, row_count):
+					cur.execute('DELETE FROM trashbin WHERE id=(,)', i)
+				print('Successfully deleted {} entries'.format(row_count - MAX_ROW_COUNT))
+			else:
+				print('Nothing to delete!')
+		except sqlite3.DatabaseError as err:
+			print('Error: {}'.format(err))
+		return None
 
 	def check_password(self, password):
 		# import re => compile ???
