@@ -5,6 +5,7 @@
 # which should be encrypted with master key and stored in password database.
 # Master key shoul be able to be changed.
 
+# not implemented yet
 # Each Vault should have own id.
 # Each Vault should have authenticated number of entries.
 
@@ -42,10 +43,6 @@ except ImportError:
 	sys.exit()
 else:
 	print('Import successfull (module password)!')
-
-# ALTER TABLE comments ADD COLUMN username TEXT;
-
-# ALTER TABLE comments RENAME TO Coms;
 
 # database structure (not fully implemented!):
 # TABLE vault
@@ -197,7 +194,6 @@ class Entry(Passvault.Vault):
 		return None
 
 	def get_entry_key(self, conn, cur, id_, enc_key):
-		# id inputed to be copmared with total number of entry in vault
 		try:
 			cur.execute('SELECT enc_password FROM password WHERE id=(?)', (id_,))
 		except sqlite3.DatabaseError as err:
@@ -247,22 +243,6 @@ class Entry(Passvault.Vault):
 				conn.commit()
 				print('Successfully deleted!')
 		return None
-		# try:
-		# 	cur.execute('SELECT * FROM password WHERE id=(?)', (id_,))
-		# except sqlite3.DatabaseError as err:
-		# 	print('Error: {}'.format(err))
-		# else:
-		# 	entry = cur.fetchone()
-		# 	print('Entry: {}'.format(entry))
-		# 	# print('type of entry: {}'.format(type(entry)))
-		# try:
-		# 	cur.execute(ins, entry)
-		# except sqlite3.DatabaseError as err:
-		# 	print('Error: {}'.format(err))
-		# else:
-		# 	conn.commit()
-		# 	print('Successfully deleted!')
-		# return None
 
 	def get_list_of_entries(self, conn, cur):
 		try:
