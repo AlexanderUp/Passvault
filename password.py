@@ -296,9 +296,18 @@ class Entry(Passvault.Vault):
 			row_count = row_count[0]
 			print('Current row count is: {}'.format(row_count))
 			if row_count >= MAX_ROW_COUNT:
-				for i in range(MAX_ROW_COUNT, row_count):
-					cur.execute('DELETE FROM trashbin WHERE id=(,)', i)
-				print('Successfully deleted {} entries'.format(row_count - MAX_ROW_COUNT))
+				cur.execute('SELECT id FROM trashbin')
+				id_tuple = cur.fetchone()
+				# tuple of ids to be deleted
+				id_tuple = id_tuple[:MAX_ROW_COUNT]
+				for id in id_tuple:
+					cur.execute('DELETE FROM trashbin WHERE id=(?)', id)
+				# for i in range(MAX_ROW_COUNT, row_count):
+				# 	# to be checked
+				# 	cur.execute('DELETE FROM trashbin WHERE id=(,)', i)
+				# print('Successfully deleted {} entries'.format(row_count - MAX_ROW_COUNT))
+				print('Successfully deleted {} entries'.format(len(id_tuple)))
+				conn.commit()
 			else:
 				print('Nothing to delete!')
 		except sqlite3.DatabaseError as err:
