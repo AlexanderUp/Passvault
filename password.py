@@ -27,11 +27,12 @@ import sqlite3
 
 from Crypto import Random
 
-# DIRECTORY = '/Users/alexanderuperenko/Desktop/Python - my projects/Passvault'
-DIRECTORY = '/Users/imac/Desktop/Python - my projects/Passvault'
+DIRECTORY = '/Users/alexanderuperenko/Desktop/Python - my projects/Passvault'
+# DIRECTORY = '/Users/imac/Desktop/Python - my projects/Passvault'
 PASSWORD_SIZE = 32
 DATABASE_NAME = 'vault_db.sqlite3'
 MAX_ROW_COUNT = 100
+ENTRY_FIELDS = ('group_id', 'account_name', 'login', 'url', 'memo')
 
 
 print('=' * 75)
@@ -75,12 +76,13 @@ else:
 #	* group_id
 #	* group_name
 
-ENTRY_FIELDS = ('group_id', 'account_name', 'login', 'url', 'memo')
 
 class Entry(Passvault.Vault):
 	def __init__(self, path=None):
 		pass
 
+	# to be refactored - named variable applied instead of 32, may be sam hashing
+	# algorithm applied
 	def init_vault_id(self):
 		vault_id = Random.new().read(32)
 		return Passvault.Vault.encode_base64(vault_id)
@@ -92,6 +94,7 @@ class Entry(Passvault.Vault):
 		encrypted_enc_key = f.encrypt_enc_key(password, enc_key)
 		assert isinstance(encrypted_enc_key, bytes)
 		# возвращает base64 от зашифрованного enc_key
+		# returns base64 from encrypted enc_key
 		return f.post_encrypt_data(encrypted_enc_key)
 
 	def connect_to_vault(self, path=None):
@@ -109,8 +112,12 @@ class Entry(Passvault.Vault):
 			try:
 				conn = sqlite3.connect(path)
 				cur = conn.cursor()
-			except Exception:
-				print('Error during connection to vault occured.')
+			except Exception as err:
+				print('The following error during connection to vault occured:')
+				print(err)
+			finally:
+				# cursor creation to be moved to outer scope??
+				conn.close()
 		else:
 			print('Path doesn\'t exists. Creating....')
 			vault_id = self.init_vault_id()
@@ -127,9 +134,11 @@ class Entry(Passvault.Vault):
 				cur.execute('CREATE table groups(group_id INTEGER PRIMARY KEY, group_name NOT NULL)')
 				cur.execute('INSERT INTO vault (vault_id, encrypted_enc_key) VALUES(?, ?)', (vault_id, encrypted_enc_key))
 				conn.commit()
-				print('Database created!')
+				# print('Database created!')
 			except sqlite3.DatabaseError as err:
 				print('Error during database creation!\n{}'.format(err))
+			else:
+				print('Database created!')
 			finally:
 				del enc_key
 				del password

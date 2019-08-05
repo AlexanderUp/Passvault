@@ -1,5 +1,4 @@
 # encoding:utf-8
-
 # Main file for Passvault
 # Contains Passvault methods: encrypt/decrypt.
 
@@ -28,13 +27,16 @@ class Vault():
     VAULT_ID_LENGHT = 32
 
     @staticmethod
-    def get_random_key(length=KEY_SIZE): # self.KEY_SIZE
-        """Returns random key produced by Crypto.Random."""
+    def get_random_key(length=KEY_SIZE):
+        '''Returns random key produced by Crypto.Random.'''
         return Random.new().read(length)
+
+    def iv(self):
+        return Random.new().read(AES.block_size)
 
     def pre_encrypt_data(self, data):
         '''
-        :Arguments: string or bytes
+        :Arguments: string or bytes.
         :Return: bytes - data with padding applied.
         '''
         data = self.to_bytes(data)
@@ -44,22 +46,82 @@ class Vault():
         assert isinstance(data, bytes)
         return data
 
+    def encrypt(self, key, iv, plain_text):
+        '''
+        :Parameters:
+            key : byte string.
+                The secret key to use in the symmetric cipher.
+                It must be 16 (*AES-128*), 24 (*AES-192*), or 32 (*AES-256*) bytes long.
+            iv : byte string.
+                The initialization vector to use for encryption or decryption.
+            plain_text: byte string.
+                Piece of data to encrypt.
+        :Return:
+            encrypted data as a byte string.
+        '''
+        assert isinstance(key, bytes)
+        assert isinstance(plain_text, bytes)
+
+        cipher = AES.new(key, self.AES_MODE, iv)
+        return iv + cipher.encrypt(plain_text)
+
     def post_encrypt_data(self, data):
         '''
-        :Arguments: bytes
-        :Return: base64 encoded data.
-        # return bytes base64 object
+        !!! Method used to store encrypted data in database.
+        :Arguments: bytes.
+        :Return: bytes - base64 encoded data.
         '''
-        # shoult method to_str() be used in returning values??
         return self.encode_base64(data)
 
+    # should decoding from base64 be implemented??
+    def pre_decrypt_data(self, data):
+        '''
+        !!! Method used to handle data retrieved from database.
+        :Arguments: base64 bytes.
+        :Return: bytes - data derived from base64.
+        '''
+        data = self.decode_base64(data) # already returns byte object - to be checked
+        data = self.to_bytes(data)
+        return data
+
+    def decrypt(self, key, cipher_text):
+        '''
+        :Arguments:
+            key - 16, 24 or 32 bytes long correspond to AES128, 192, 256 respectively.
+            chipher_text - bytes.
+        :Return: bytes.
+        '''
+        assert isinstance(key, bytes)
+        assert isinstance(cipher_text, bytes)
+        iv = cipher_text[:AES.block_size]
+        cipher = AES.new(key, self.AES_MODE, iv)
+        # return cipher.decrypt(cipher_text)[AES.block_size:]
+        return cipher.decrypt(cipher_text[AES.block_size:])
+
+    # to check is this function is proprly working during random data handling?
+    def post_decrypt_data(self, data):
+        '''
+        :Arguments: bytes.
+        :Return: bytes.
+        Remove padding.
+        '''
+        padding = data[-1]
+        # should to_str function work only this not random data, e.g. letters, words, etc?
+        # return self.to_str(data[:-padding])
+        return data[:-padding] # even random data will be processed
+
+    def kdf_salt(self):
+        return Random.new().read(self.SALT_SIZE)
+
+    def hmac_salt(self):
+        return Random.new().read(self.SALT_SIZE)
+
     def encrypt_enc_key(self, password, enc_key):
-        """
+        '''
         dkLen=32 corresponds to AES256 key (32 bytes).
         Return (kdf_salt, hmac_salt, encrypted data, hmac(kdf_salt, hmac_salt, encrypted data)).
         hashlib.sha3_256 produces 32 bytes hash.
-        """
-
+        '''
         kdf_salt = self.kdf_salt()
         hmac_salt = self.hmac_salt()
         iv = self.iv()
@@ -74,28 +136,6 @@ class Vault():
         data += hmac.new(hmac_key, data, digestmod=self.HMAC_DIGESTMOD).digest()
         assert isinstance(data, bytes)
         return data
-
-    # should decoding from base64 be implemented??
-    def pre_decrypt_data(self, data):
-        '''
-        :Arguments: base64 string
-        :Return: bytes - data derived from base64
-        '''
-        data = self.decode_base64(data)
-        data = self.to_bytes(data)
-        return data
-
-    # to check is this function is proprly working during random data handling?
-    def post_decrypt_data(self, data):
-        '''
-        :Arguments: bytes
-        :Return: bytes
-        Remove padding.
-        '''
-        padding = data[-1]
-        # should to_str function work only this not random data, e.g. letters, words, etc?
-        # return self.to_str(data[:-padding])
-        return data[:-padding] # even random data will be processed
 
     def decrypt_enc_key(self, password, data):
         kdf_salt = data[:self.SALT_SIZE]
@@ -115,63 +155,38 @@ class Vault():
         enc_key = self.decrypt(encryption_key, data[self.SALT_SIZE*2:-self.HMAC_HASH_SIZE])
         return enc_key
 
-    def encrypt(self, key, iv, plain_text):
-        '''
-        :Parameters:
-            key : byte string
-                The secret key to use in the symmetric cipher.
-                It must be 16 (*AES-128*), 24 (*AES-192*), or 32 (*AES-256*) bytes long.
-            iv : byte string
-                The initialization vector to use for encryption or decryption.
-            plain_text: byte string
-                Piece of data to encrypt
-        :Return:
-            encrypted data as a byte string
-        '''
-        cipher = AES.new(key, self.AES_MODE, iv)
-        return iv + cipher.encrypt(plain_text)
-
-    def decrypt(self, key, cipher_text):
-        '''
-        :Arguments:
-            key - 16, 24 or 32 bytes long correspond to AES128, 192, 256 respectively
-            chipher_text - bytes
-        :Return: => bytes
-        '''
-        iv = cipher_text[:AES.block_size]
-        cipher = AES.new(key, self.AES_MODE, iv)
-        return cipher.decrypt(cipher_text)[AES.block_size:]
-
-    def iv(self):
-        return Random.new().read(AES.block_size)
-
-    def kdf_salt(self):
-        return Random.new().read(self.SALT_SIZE)
-
-    def hmac_salt(self):
-        return Random.new().read(self.SALT_SIZE)
-
+    # to be checked!!!
     @staticmethod
     def encode_base64(data):
-        return base64.b64encode(data)
+        '''Encode the bytes-like object using Base64 and return a bytes object.'''
+        return Vault.to_str(base64.b64encode(data))
 
+    # to be checked!!!
     @staticmethod
     def decode_base64(data):
-        return base64.b64decode(data)
+        '''
+        Decode the Base64 encoded bytes-like object or ASCII string.
+        The result is returned as a bytes object.
+        '''
+        return base64.b64decode(Vault.to_bytes(data))
 
-    def to_bytes(self, s):
+    @staticmethod
+    def to_bytes(s):
         if isinstance(s, bytes):
             return s
         elif isinstance(s, str):
             return s.encode('utf-8')
 
-    def to_str(self, s):
+    @staticmethod
+    def to_str(s):
         if isinstance(s, bytes):
             return s.decode('utf-8')
         elif isinstance(s, str):
             return s
 
+# ==============================================================================
     # to be refactored
+    # salt to be added, otherwise same entry always will produce same hmac
     def sign(self, key, entry):
         key = self.to_bytes(key)
         entry = self.to_bytes(entry)
@@ -185,3 +200,29 @@ class Vault():
             raise Exception('Bad signature!')
         return None
         # return digest  # for unittest
+
+# ==============================================================================
+
+# PBKDF2(password, salt, dkLen=16, count=1000, prf=None)
+#     Derive one or more keys from a password (or passphrase).
+#
+#     This performs key derivation according to the PKCS#5 standard (v2.0),
+#     by means of the ``PBKDF2`` algorithm.
+#
+#     :Parameters:
+#      password : string
+#         The secret password or pass phrase to generate the key from.
+#      salt : string
+#         A string to use for better protection from dictionary attacks.
+#         This value does not need to be kept secret, but it should be randomly
+#         chosen for each derivation. It is recommended to be at least 8 bytes long.
+#      dkLen : integer
+#         The cumulative length of the desired keys. Default is 16 bytes, suitable for instance for `Crypto.Cipher.AES`.
+#      count : integer
+#         The number of iterations to carry out. It's recommended to use at least 1000.
+#      prf : callable
+#         A pseudorandom function. It must be a function that returns a pseudorandom string
+#         from two parameters: a secret and a salt. If not specified, HMAC-SHA1 is used.
+#
+#     :Return: A byte string of length `dkLen` that can be used as key material.
+#         If you wanted multiple keys, just break up this string into segments of the desired length.
