@@ -7,9 +7,11 @@ import base64
 import hashlib
 import hmac
 
+
 from Crypto import Random
 from Crypto.Cipher import AES
 from Crypto.Protocol import KDF
+
 
 class Vault():
 
@@ -31,6 +33,40 @@ class Vault():
         '''Returns random key produced by Crypto.Random.'''
         return Random.new().read(length)
 
+    @staticmethod
+    def to_bytes(s):
+        if isinstance(s, bytes):
+            return s
+        elif isinstance(s, str):
+            return s.encode('utf-8')
+
+    @staticmethod
+    def to_str(s):
+        if isinstance(s, bytes):
+            return s.decode('utf-8')
+        elif isinstance(s, str):
+            return s
+
+    @staticmethod
+    def get_random_key_human_readable(key):
+        return Vault.to_str(base64.b16encode(key))
+
+    @staticmethod
+    def encode_base64(data):
+        '''Encode the bytes-like object using Base64 and return a str object.'''
+        return Vault.to_str(base64.b64encode(data))
+
+    @staticmethod
+    def decode_base64(data):
+        '''
+        Decode the Base64 encoded bytes-like object or ASCII string.
+        The result is returned as a bytes object.
+        '''
+        # return Vault.to_bytes(base64.b64decode(data))
+        byte_data = base64.b64decode(data)
+        assert isinstance(byte_data, bytes)
+        return byte_data
+
     def iv(self):
         return Random.new().read(AES.block_size)
 
@@ -40,10 +76,8 @@ class Vault():
         :Return: bytes - data with padding applied.
         '''
         data = self.to_bytes(data)
-        assert isinstance(data, bytes)
         padding = AES.block_size - len(data) % AES.block_size
         data += bytes([padding]) * padding
-        assert isinstance(data, bytes)
         return data
 
     def encrypt(self, key, iv, plain_text):
@@ -59,9 +93,6 @@ class Vault():
         :Return:
             encrypted data as a byte string.
         '''
-        assert isinstance(key, bytes)
-        assert isinstance(plain_text, bytes)
-
         cipher = AES.new(key, self.AES_MODE, iv)
         return iv + cipher.encrypt(plain_text)
 
@@ -73,15 +104,15 @@ class Vault():
         '''
         return self.encode_base64(data)
 
-    # should decoding from base64 be implemented??
     def pre_decrypt_data(self, data):
         '''
         !!! Method used to handle data retrieved from database.
         :Arguments: base64 bytes.
         :Return: bytes - data derived from base64.
         '''
-        data = self.decode_base64(data) # already returns byte object - to be checked
         data = self.to_bytes(data)
+        data = self.decode_base64(data)
+        assert isinstance(data, bytes)
         return data
 
     def decrypt(self, key, cipher_text):
@@ -95,10 +126,8 @@ class Vault():
         assert isinstance(cipher_text, bytes)
         iv = cipher_text[:AES.block_size]
         cipher = AES.new(key, self.AES_MODE, iv)
-        # return cipher.decrypt(cipher_text)[AES.block_size:]
         return cipher.decrypt(cipher_text[AES.block_size:])
 
-    # to check is this function is proprly working during random data handling?
     def post_decrypt_data(self, data):
         '''
         :Arguments: bytes.
@@ -106,9 +135,7 @@ class Vault():
         Remove padding.
         '''
         padding = data[-1]
-        # should to_str function work only this not random data, e.g. letters, words, etc?
-        # return self.to_str(data[:-padding])
-        return data[:-padding] # even random data will be processed
+        return data[:-padding]
 
     def kdf_salt(self):
         return Random.new().read(self.SALT_SIZE)
@@ -155,35 +182,6 @@ class Vault():
         enc_key = self.decrypt(encryption_key, data[self.SALT_SIZE*2:-self.HMAC_HASH_SIZE])
         return enc_key
 
-    # to be checked!!!
-    @staticmethod
-    def encode_base64(data):
-        '''Encode the bytes-like object using Base64 and return a bytes object.'''
-        return Vault.to_str(base64.b64encode(data))
-
-    # to be checked!!!
-    @staticmethod
-    def decode_base64(data):
-        '''
-        Decode the Base64 encoded bytes-like object or ASCII string.
-        The result is returned as a bytes object.
-        '''
-        return base64.b64decode(Vault.to_bytes(data))
-
-    @staticmethod
-    def to_bytes(s):
-        if isinstance(s, bytes):
-            return s
-        elif isinstance(s, str):
-            return s.encode('utf-8')
-
-    @staticmethod
-    def to_str(s):
-        if isinstance(s, bytes):
-            return s.decode('utf-8')
-        elif isinstance(s, str):
-            return s
-
 # ==============================================================================
     # to be refactored
     # salt to be added, otherwise same entry always will produce same hmac
@@ -202,7 +200,6 @@ class Vault():
         # return digest  # for unittest
 
 # ==============================================================================
-
 # PBKDF2(password, salt, dkLen=16, count=1000, prf=None)
 #     Derive one or more keys from a password (or passphrase).
 #
@@ -226,3 +223,4 @@ class Vault():
 #
 #     :Return: A byte string of length `dkLen` that can be used as key material.
 #         If you wanted multiple keys, just break up this string into segments of the desired length.
+# ==============================================================================

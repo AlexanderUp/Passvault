@@ -8,4 +8,19 @@ def pad_with_zeroes(block, block_lenght=32):
     return block
 
 def make_average():
-    pass
+    x = 0
+    count = 0
+    def average(num):
+        nonlocal x, count
+        x += num
+        count += 1
+        return x / count
+    return average
+
+
+if __name__ == '__main__':
+    print('*' * 125)
+    average = make_average()
+    print(average(10))
+    print(average(20))
+    print(average(30))
