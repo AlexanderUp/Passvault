@@ -21,29 +21,21 @@
 # not implemented yet
 # all data => sqlite3, data export or text backup or visual representation => xml/json
 
+
 import os
 import sys
 import sqlite3
+import Passvault
 
 from Crypto import Random
 
+
 DIRECTORY = '/Users/alexanderuperenko/Desktop/Python - my projects/Passvault'
-# DIRECTORY = '/Users/imac/Desktop/Python - my projects/Passvault'
 PASSWORD_SIZE = 32
 DATABASE_NAME = 'vault_db.sqlite3'
 MAX_ROW_COUNT = 100
 ENTRY_FIELDS = ('group_id', 'account_name', 'login', 'url', 'memo')
-
-
-print('=' * 75)
-
-try:
-	import Passvault
-except ImportError:
-	print('Can\'t import Passvault')
-	sys.exit()
-else:
-	print('Import successfull (module password)!')
+VAULT_ID_LENGHT = 32
 
 # database structure (not fully implemented!):
 # TABLE vault
@@ -77,14 +69,13 @@ else:
 #	* group_name
 
 
-class Entry(Passvault.Vault):
+class Database(Passvault.Vault):
+
 	def __init__(self, path=None):
 		pass
 
-	# to be refactored - named variable applied instead of 32, may be sam hashing
-	# algorithm applied
 	def init_vault_id(self):
-		vault_id = Random.new().read(32)
+		vault_id = Random.new().read(VAULT_ID_LENGHT)
 		return Passvault.Vault.encode_base64(vault_id)
 
 	def init_encrypted_enc_key(self, password, enc_key):

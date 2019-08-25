@@ -16,10 +16,6 @@ from Crypto.Protocol import KDF
 class Vault():
 
     AES_MODE = AES.MODE_CBC   # Input strings must be a multiple of 16 in length
-    # AES_MODE = AES.MODE_CFB
-    # AES_MODE = AES.MODE_OFB   # Input strings must be a multiple of 16 in length
-    # AES_MODE = AES.MODE_CTR   # 'counter' keyword parameter is required with CTR mode
-    # AES_MODE = AES.MODE_ECB   # Input strings must be a multiple of 16 in length
     KEY_SIZE = 32 # to be 32 bytes, not 256 !!
     SALT_SIZE = 16
     HMAC_DIGESTMOD = hashlib.sha3_256
@@ -62,9 +58,7 @@ class Vault():
         Decode the Base64 encoded bytes-like object or ASCII string.
         The result is returned as a bytes object.
         '''
-        # return Vault.to_bytes(base64.b64decode(data))
         byte_data = base64.b64decode(data)
-        assert isinstance(byte_data, bytes)
         return byte_data
 
     def iv(self):
@@ -112,7 +106,6 @@ class Vault():
         '''
         data = self.to_bytes(data)
         data = self.decode_base64(data)
-        assert isinstance(data, bytes)
         return data
 
     def decrypt(self, key, cipher_text):
@@ -122,8 +115,6 @@ class Vault():
             chipher_text - bytes.
         :Return: bytes.
         '''
-        assert isinstance(key, bytes)
-        assert isinstance(cipher_text, bytes)
         iv = cipher_text[:AES.block_size]
         cipher = AES.new(key, self.AES_MODE, iv)
         return cipher.decrypt(cipher_text[AES.block_size:])
@@ -158,10 +149,7 @@ class Vault():
         encrypted_enc_key = self.encrypt(encryption_key, iv, enc_key)
 
         data = kdf_salt + hmac_salt + encrypted_enc_key
-        assert isinstance(data, bytes)
-
         data += hmac.new(hmac_key, data, digestmod=self.HMAC_DIGESTMOD).digest()
-        assert isinstance(data, bytes)
         return data
 
     def decrypt_enc_key(self, password, data):
@@ -172,9 +160,6 @@ class Vault():
         hmac_key = KDF.PBKDF2(password, hmac_salt, dkLen=self.DK_LEN, count=self.KDF_COUNT, prf=None)
 
         hmac_ = hmac.new(hmac_key, data[:-self.HMAC_HASH_SIZE], digestmod=self.HMAC_DIGESTMOD).digest()
-
-        assert isinstance(hmac_, bytes)
-        assert isinstance(data[-self.HMAC_HASH_SIZE:], bytes)
 
         if hmac_ != data[-self.HMAC_HASH_SIZE:]:
             raise Exception('Bad hmac!')
@@ -197,7 +182,7 @@ class Vault():
         if digest != signature:
             raise Exception('Bad signature!')
         return None
-        # return digest  # for unittest
+# ==============================================================================
 
 # ==============================================================================
 # PBKDF2(password, salt, dkLen=16, count=1000, prf=None)
