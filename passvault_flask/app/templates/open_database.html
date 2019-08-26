@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <html>
+    <head>
+      <title>Entry screen</title>
+    </head>
+    <body>
+      <h1>Fill in master password to open database</h1><hr>
+      <form action='' method='post'>
+        {{ form.hidden_tag() }}
+        <p>
+          {{ form.master_password.label }}<br>
+          {{ form.master_password(size=32) }}
+        </p>
+        <p>{{ form.submit() }}</p>
+      </form>
+    </body>
+  </html>
+{% endblock %}
