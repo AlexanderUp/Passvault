@@ -8,7 +8,7 @@ import time
 from Crypto.Cipher import AES
 from base64 import b16decode
 
-from aux_function_for_tests import make_average
+from test_aux_function import make_average
 
 
 ENC_KEY = b16decode('C3E70D3CA5A9E73668C1E685F4877FCF16EB39BBED97E9CC2DE182F8B7069BDB')
