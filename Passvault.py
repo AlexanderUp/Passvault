@@ -167,6 +167,21 @@ class Vault():
         enc_key = self.decrypt(encryption_key, data[self.SALT_SIZE*2:-self.HMAC_HASH_SIZE])
         return enc_key
 
+    def get_encrypted_data(self, key, data):
+        '''Combine some encryption methods in one call.'''
+        iv = self.iv()
+        plain_text = self.pre_encrypt_data(data)
+        encrypted_data = self.encrypt(key, iv, plain_text)
+        post_encrypted_data = self.post_encrypt_data(encrypted_data)
+        return post_encrypted_data
+
+    def get_decrypted_data(self, key, encrypted_data):
+        '''Combine some decryption methods in one call.'''
+        pre_decrypted_data = self.pre_decrypt_data(encrypted_data)
+        decrypted_data = self.decrypt(key, pre_decrypted_data)
+        post_decrypted_data = self.post_decrypt_data(decrypted_data)
+        return post_decrypted_data
+
 # ==============================================================================
     # to be refactored
     # salt to be added, otherwise same entry always will produce same hmac

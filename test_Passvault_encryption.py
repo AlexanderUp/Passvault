@@ -4,6 +4,7 @@
 import Passvault
 import unittest
 import time
+import os
 
 from Crypto.Cipher import AES
 from base64 import b16decode
@@ -47,13 +48,16 @@ class PassvaultTest(unittest.TestCase):
             self.assertEqual(plain_text, plain_text_depadded)
 
     def test_encryption(self):
-        key = ENC_KEY
-        for test_text in PLAIN_TEXTS:
-            plain_text = self.vault.pre_encrypt_data(test_text)
-            encrypted_text = self.vault.encrypt(key, self.iv, plain_text)
-            decrypted_text = self.vault.decrypt(key, encrypted_text)
-            decrypted_text = self.vault.post_decrypt_data(decrypted_text)
-            self.assertEqual(test_text, decrypted_text.decode('utf-8'))
+        for key in (KEY, ENC_KEY):
+            for test_text in PLAIN_TEXTS:
+                plain_text = self.vault.pre_encrypt_data(test_text)
+                encrypted_text = self.vault.encrypt(key, self.iv, plain_text)
+                encrypted_text = self.vault.post_encrypt_data(encrypted_text)
+
+                encrypted_text = self.vault.pre_decrypt_data(encrypted_text)
+                decrypted_text = self.vault.decrypt(key, encrypted_text)
+                decrypted_text = self.vault.post_decrypt_data(decrypted_text)
+                self.assertEqual(test_text, decrypted_text.decode('utf-8'))
 
     def test_encryption_advanced(self):
         key = ENC_KEY
@@ -61,7 +65,9 @@ class PassvaultTest(unittest.TestCase):
         for test_text in PLAIN_TEXTS:
             plain_text = self.vault.pre_encrypt_data(test_text)
             encrypted_text = self.vault.encrypt(key, self.iv, plain_text)
+            encrypted_text = self.vault.post_encrypt_data(encrypted_text)
 
+            encrypted_text = self.another_vault.pre_decrypt_data(encrypted_text)
             decrypted_text = self.another_vault.decrypt(key, encrypted_text)
             decrypted_text = self.another_vault.post_decrypt_data(decrypted_text)
             self.assertNotEqual(id(self.vault), id(self.another_vault))
@@ -89,6 +95,15 @@ class PassvaultTest(unittest.TestCase):
         print('Total elapsed time: {}'.format(time.perf_counter() - commencement_time))
         print('Average time: {}'.format(average_time))
         print('Total rounds: {}'.format(len(passwords) * len(plain_texts)))
+
+    def test_get_encrypted_decrypted_data(self):
+        self.assertNotEqual(id(self.vault), id(self.another_vault))
+        passwords = (os.urandom(self.vault.KEY_SIZE) for i in range(256))
+        for password in passwords:
+            for plain_text in PLAIN_TEXTS:
+                encrypted_message = self.vault.get_encrypted_data(password, plain_text)
+                decrypted_message = self.another_vault.get_decrypted_data(password, encrypted_message)
+                self.assertEqual(plain_text, decrypted_message.decode('utf-8'))
 
     @unittest.skip
     def test_signature(self, key, entry):

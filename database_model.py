@@ -3,7 +3,7 @@
 
 # Each entry should be encrypted with randomly generated key,
 # which should be encrypted with master key and stored in password database.
-# Master key shoul be able to be changed.
+# Master key should be able to be changed.
 
 # not implemented yet
 # Each Vault should have own id.
@@ -72,7 +72,9 @@ VAULT_ID_LENGHT = 32
 class Database(Passvault.Vault):
 
 	def __init__(self, path=None):
-		pass
+		self.conn = None
+		self.cur = None
+		self.enc_key = None
 
 	def init_vault_id(self):
 		vault_id = Random.new().read(VAULT_ID_LENGHT)
@@ -81,76 +83,64 @@ class Database(Passvault.Vault):
 	def init_encrypted_enc_key(self, password, enc_key):
 		f = Passvault.Vault()
 		enc_key = f.pre_encrypt_data(enc_key)
-		assert password # password isn't empty string
-		encrypted_enc_key = f.encrypt_enc_key(password, enc_key)
-		assert isinstance(encrypted_enc_key, bytes)
-		# возвращает base64 от зашифрованного enc_key
-		# returns base64 from encrypted enc_key
+		if password:
+			encrypted_enc_key = f.encrypt_enc_key(password, enc_key)
+		else:
+			raise ValueError('Empty password')
 		return f.post_encrypt_data(encrypted_enc_key)
 
-	def connect_to_vault(self, path=None):
-		# path = os.getcwd() # returns current working directory
-		if not path:
-			# change the current working directory to specified one
-			os.chdir(DIRECTORY)
+	def create_database(self, password, path=None):
+		vault_id = self.init_vault_id()
+		enc_key = self.get_random_key()
+		# password = input('Input password...\n>>> ')
+		encrypted_enc_key = self.init_encrypted_enc_key(password, enc_key)
+		try:
+			self.conn = sqlite3.connect(path)
+			self.cur = self.conn.cursor()
+			self.cur.execute('CREATE table vault(id INTEGER PRIMARY KEY, vault_id NOT NULL, encrypted_enc_key NOT NULL)')
+			self.cur.execute('CREATE table password(id INTEGER PRIMARY KEY, group_id NOT NULL, account_name NOT NULL, login, url, enc_password NOT NULL, memo TEXT)')
+			self.cur.execute('CREATE table trashbin(id INTEGER PRIMARY KEY, previous_id INTEGER NOT NULL, group_id NOT NULL, account_name NOT NULL, login NOT NULL, url NOT NULL, enc_password NOT NULL, memo TEXT)')
+			self.cur.execute('CREATE table groups(group_id INTEGER PRIMARY KEY, group_name NOT NULL)')
+			self.cur.execute('INSERT INTO vault (vault_id, encrypted_enc_key) VALUES(?, ?)', (vault_id, encrypted_enc_key))
+			self.conn.commit()
+		except sqlite3.DatabaseError as err:
+			print('Error during database creation!\n{}'.format(err))
 		else:
-			os.chdir(path)
-		path = os.getcwd()
-		path = os.path.join(path, DATABASE_NAME)
-		print('path: {}'.format(path))
+			print('Database created!')
+			print('Path to database:')
+			print(path)
+		return None
+
+	def open_database(self, path=DIRECTORY):
+		path_to_directory, database_name = os.path.split(path)
+		print('path: {}'.format(path_to_directory))
 		if os.path.exists(path):
 			print('Database exists!')
 			try:
-				conn = sqlite3.connect(path)
-				cur = conn.cursor()
+				self.conn = sqlite3.connect(path)
 			except Exception as err:
 				print('The following error during connection to vault occured:')
 				print(err)
-			finally:
-				# cursor creation to be moved to outer scope??
-				conn.close()
+			else:
+				self.cur = self.conn.cursor()
 		else:
 			print('Path doesn\'t exists. Creating....')
-			vault_id = self.init_vault_id()
-			enc_key = Passvault.Vault.get_random_key()
-			password = input('Input password...\n>>> ')
-			encrypted_enc_key = self.init_encrypted_enc_key(password, enc_key)
-			try:
-				conn = sqlite3.connect(path)
-				cur = conn.cursor()
-				# INTEGER PRIMARY KEY AUTO INCREMENT
-				cur.execute('CREATE table vault(id INTEGER PRIMARY KEY, vault_id NOT NULL, encrypted_enc_key NOT NULL)')
-				cur.execute('CREATE table password(id INTEGER PRIMARY KEY, group_id NOT NULL, account_name NOT NULL, login, url, enc_password NOT NULL, memo TEXT)')
-				cur.execute('CREATE table trashbin(id INTEGER PRIMARY KEY, previous_id INTEGER NOT NULL, group_id NOT NULL, account_name NOT NULL, login NOT NULL, url NOT NULL, enc_password NOT NULL, memo TEXT)')
-				cur.execute('CREATE table groups(group_id INTEGER PRIMARY KEY, group_name NOT NULL)')
-				cur.execute('INSERT INTO vault (vault_id, encrypted_enc_key) VALUES(?, ?)', (vault_id, encrypted_enc_key))
-				conn.commit()
-				# print('Database created!')
-			except sqlite3.DatabaseError as err:
-				print('Error during database creation!\n{}'.format(err))
-			else:
-				print('Database created!')
-			finally:
-				del enc_key
-				del password
-		return (conn, cur)
+			self.create_database(path)
+		return None
 
-	def password_decrypt(self, conn, cur):
-		cur.execute('SELECT encrypted_enc_key FROM vault')
-		encrypted_enc_key = cur.fetchone()[0] # without index tuple returned!
-		print('Got encrypted_enc_key:\n{}'.format(encrypted_enc_key))
-		f = Passvault.Vault()
-		encrypted_enc_key = f.pre_decrypt_data(encrypted_enc_key)
-		password = input('Enter password...\n>>> ')
-		enc_key = f.decrypt_enc_key(password, encrypted_enc_key)
-		enc_key = f.post_decrypt_data(enc_key)
-		del password
+	def decrypt_master_password(self, master_password):
+		self.cur.execute('SELECT encrypted_enc_key FROM vault')
+		encrypted_enc_key = self.cur.fetchone()[0] # without index tuple returned!
+		# print('Got encrypted_enc_key:\n{}'.format(encrypted_enc_key))
+		encrypted_enc_key = self.pre_decrypt_data(encrypted_enc_key)
+		enc_key = self.decrypt_enc_key(master_password, encrypted_enc_key)
+		self.enc_key = self.post_decrypt_data(enc_key)
 		print('Password decrypted sucсessfully!')
-		return enc_key
+		return None
 
 	def change_password(self, conn, cur):
 		f = Entry()
-		enc_key = f.password_decrypt(conn, cur)
+		enc_key = f.decrypt_master_password(conn, cur)
 		# print('enc_key: {}'.format(enc_key))
 		new_password = input('Enter new master password...\n>>> ')
 		enc_key = f.pre_encrypt_data(enc_key)
@@ -167,6 +157,13 @@ class Database(Passvault.Vault):
 			del enc_key
 			del new_password
 		return None
+
+	def change_master_password(self):
+		'''
+		Produce new master key, decrypt all entries with old master password,
+		encrypt them back using new master password.
+		'''
+		pass
 
 	def create_entry(self, conn, cur, enc_key):
 		data = {}
@@ -260,7 +257,7 @@ class Database(Passvault.Vault):
 	# update password for specified entry
 	def update_password(self, conn, cur, id_):
 		new_password = Random.new().read(PASSWORD_SIZE)
-		enc_key = self.password_decrypt(conn, cur)
+		enc_key = self.decrypt_master_password(conn, cur)
 		print('Got entry key: {}'.format(enc_key))
 		encrypted_password = self.pre_encrypt_data(new_password)
 		iv = self.iv()
