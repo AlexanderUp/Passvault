@@ -3,7 +3,7 @@
 
 import unittest
 
-from Crypto.Cipher import AES
+from Cryptodome.Cipher import AES
 from base64 import b16encode, b16decode
 from test_aux_function import pad_with_zeroes
 

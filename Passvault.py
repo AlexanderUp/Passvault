@@ -8,9 +8,9 @@ import hashlib
 import hmac
 
 
-from Crypto import Random
-from Crypto.Cipher import AES
-from Crypto.Protocol import KDF
+from Cryptodome import Random
+from Cryptodome.Cipher import AES
+from Cryptodome.Protocol import KDF
 
 
 class Vault():
@@ -26,7 +26,7 @@ class Vault():
 
     @staticmethod
     def get_random_key(length=KEY_SIZE):
-        '''Returns random key produced by Crypto.Random.'''
+        '''Returns random key produced by Crypto.Random.''' # Cryptodome currently in use
         return Random.new().read(length)
 
     @staticmethod
@@ -197,30 +197,4 @@ class Vault():
         if digest != signature:
             raise Exception('Bad signature!')
         return None
-# ==============================================================================
-
-# ==============================================================================
-# PBKDF2(password, salt, dkLen=16, count=1000, prf=None)
-#     Derive one or more keys from a password (or passphrase).
-#
-#     This performs key derivation according to the PKCS#5 standard (v2.0),
-#     by means of the ``PBKDF2`` algorithm.
-#
-#     :Parameters:
-#      password : string
-#         The secret password or pass phrase to generate the key from.
-#      salt : string
-#         A string to use for better protection from dictionary attacks.
-#         This value does not need to be kept secret, but it should be randomly
-#         chosen for each derivation. It is recommended to be at least 8 bytes long.
-#      dkLen : integer
-#         The cumulative length of the desired keys. Default is 16 bytes, suitable for instance for `Crypto.Cipher.AES`.
-#      count : integer
-#         The number of iterations to carry out. It's recommended to use at least 1000.
-#      prf : callable
-#         A pseudorandom function. It must be a function that returns a pseudorandom string
-#         from two parameters: a secret and a salt. If not specified, HMAC-SHA1 is used.
-#
-#     :Return: A byte string of length `dkLen` that can be used as key material.
-#         If you wanted multiple keys, just break up this string into segments of the desired length.
 # ==============================================================================

@@ -6,7 +6,7 @@ import unittest
 import time
 import os
 
-from Crypto.Cipher import AES
+from Cryptodome.Cipher import AES
 from base64 import b16decode
 
 from test_aux_function import make_average

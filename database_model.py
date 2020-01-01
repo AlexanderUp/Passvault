@@ -27,12 +27,12 @@ import sys
 import sqlite3
 import Passvault
 
-from Crypto import Random
+from Cryptodome import Random
+
+from config import Config
 
 
-DIRECTORY = '/Users/alexanderuperenko/Desktop/Python - my projects/Passvault'
 PASSWORD_SIZE = 32
-DATABASE_NAME = 'vault_db.sqlite3'
 MAX_ROW_COUNT = 100
 ENTRY_FIELDS = ('group_id', 'account_name', 'login', 'url', 'memo')
 VAULT_ID_LENGHT = 32
@@ -46,7 +46,7 @@ VAULT_ID_LENGHT = 32
 #	* encrypted_enc_key
 #	* sha256(encrypted_enc_key)
 #	* version of database schema
-#	* version of cryptography function applied
+#	* version of cryptographycal function applied
 #	* version of module
 # TABLE entries (TABLE password)
 #	* id (generally, entry number)
@@ -111,7 +111,7 @@ class Database(Passvault.Vault):
 			print(path)
 		return None
 
-	def open_database(self, path=DIRECTORY):
+	def open_database(self, path=Config.DIRECTORY):
 		path_to_directory, database_name = os.path.split(path)
 		print('path: {}'.format(path_to_directory))
 		if os.path.exists(path):
