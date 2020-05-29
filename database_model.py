@@ -1,18 +1,18 @@
 # encoding:utf-8
+# passvault application database model
 
-import os
-import sqlalchemy as db
 
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy import create_engine
+from sqlalchemy import Table
+from sqlalchemy import Column
+from sqlalchemy import Integer
+from sqlalchemy import String
+from sqlalchemy import DateTime
+from sqlalchemy import MetaData
+
 
 from datetime import datetime
 
-# from config import Config
-#
-# engine = db.create_engine('sqlite:///' + Config['DIRECTORY'] + os.sep + Config['DATABASE_NAME'])
-
-Base = declarative_base()
 
 # ('CREATE table vault(id INTEGER PRIMARY KEY, vault_id NOT NULL, encrypted_enc_key NOT NULL)')
 # ('CREATE table password(id INTEGER PRIMARY KEY, group_id NOT NULL, account_name NOT NULL, login, url, enc_password NOT NULL, memo TEXT)')
@@ -20,40 +20,65 @@ Base = declarative_base()
 # ('CREATE table groups(group_id INTEGER PRIMARY KEY, group_name NOT NULL)')
 # ('INSERT INTO vault (vault_id, encrypted_enc_key) VALUES(?, ?)', (vault_id, encrypted_enc_key))
 
-class Vault(Base):
-    __tablename__ = 'vault'
-    id = db.Column(db.Integer(), primary_key=True)
-    vault_id = db.Column(db.Integer(), nullable=False)
-    encrypted_enc_key = db.Column(db.String(192), nullable=False, unique=True)
-    created_on = db.Column(db.DateTime(), default=datetime.now)
-    updated_on = db.Column(db.DateTime(), default=datetime.now, onupdate=datetime.now)
-    db_schema_version = db.Column(db.String(16), nullable=False)
-    crypto_version = db.Column(db.String(16), nullable=False)
-    passvault_app_version = db.Column(db.String(16), nullable=False)
+
+metadata = MetaData()
+
+table_vault = Table('vault', metadata,
+                    Column('id', Integer, primary_key=True),
+                    Column('vault_id', Integer, nullable=False),
+                    Column('encrypted_enc_key', String, nullable=False, unique=True),
+                    Column('created_on', DateTime, default=datetime.now),
+                    Column('updated_on', DateTime, default=datetime.now, onupdate=datetime.now),
+                    Column('db_schema_version', String, nullable=False),
+                    Column('crypto_version', String, nullable=False),
+                    Column('passvault_app_version', String, nullable=False))
+
+table_password = Table('passwords', metadata,
+                        Column('id', Integer, primary_key=True),
+                        Column('group_id', Integer, index=True),
+                        Column('account_name', String, nullable=False, unique=True, index=True),
+                        Column('login', String, nullable=False, index=True),
+                        Column('url', String, nullable=False, index=True),
+                        Column('encrypted_password', String, nullable=False, unique=True),
+                        Column('memo', String))
+
+table_group = Table('groups', metadata,
+                    Column('id', Integer, primary_key=True),
+                    Column('group_name', String, nullable=False, unique=True))
+
+
+class Vault():
+
+    def __init__(self, vault_id, encrypted_enc_key, db_schema_version, \
+                crypto_version, passvault_app_version):
+        self.vault_id = vault_id
+        self.encrypted_enc_key = encrypted_enc_key
+        self.db_schema_version = db_schema_version
+        self.crypto_version = crypto_version
+        self.passvault_app_version = passvault_app_version
 
     def __repr__(self):
-        return '<Vault {} created on {}>'.format(self.vault_id, self.created_on)
+        return '<Vault id: {}>'.format(self.vault_id)
 
 
-class Password(Base):
-    __tablename__ = 'passwords'
-    id = db.Column(db.Integer(), primary_key=True)
-    group_id = db.Column(db.Integer(), index=True)
-    account_name = db.Column(db.String(256), nullable=False, unique=True, index=True)
-    login = db.Column(db.String(256), nullable=False, index=True)
-    url = db.Column(db.String(256), nullable=False, index=True)
-    encrypted_password = db.Column(db.String(256), nullable=False, unique=True)
-    memo = db.Column(db.String(1024))
+class Password():
 
-    def __repr__(self):
-        return '<Password {}>'.format(self.account_name)
-
-
-class Group(Base):
-    __tablename__ = 'groups'
-    id = db.Column(db.Integer(), primary_key=True)
-    group_name = db.Column(db.String(256), nullable=False, unique=True)
-    # accounts = relationship('Password', secondary='passwords', backref='group')
+    def __init__(self, group_id, account_name, login, url, encrypted_password, memo):
+        self.group_id = group_id
+        self.account_name = account_name
+        self.login = login
+        self.url = url
+        self.encrypted_password = encrypted_password
+        self.memo = memo
 
     def __repr__(self):
-        return '<Group {}>'.format(self.group_name)
+        return '<Password "{}">'.format(self.account_name)
+
+
+class Group():
+
+    def __init__(self, group_name):
+        self.group_name = group_name
+
+    def __repr__(self):
+        return '<Group "{}">'.format(self.group_name)

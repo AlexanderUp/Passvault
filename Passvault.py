@@ -167,7 +167,7 @@ class Vault():
         enc_key = self.decrypt(encryption_key, data[self.SALT_SIZE*2:-self.HMAC_HASH_SIZE])
         return enc_key
 
-    def get_encrypted_data(self, key, data):
+    def set_encrypted_data(self, key, data):
         '''Combine some encryption methods in one call.'''
         iv = self.iv()
         plain_text = self.pre_encrypt_data(data)
