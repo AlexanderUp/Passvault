@@ -16,7 +16,7 @@ from Cryptodome.Protocol import KDF
 class Vault():
 
     AES_MODE = AES.MODE_CBC   # Input strings must be a multiple of 16 in length
-    KEY_SIZE = 32 # to be 32 bytes, not 256 !!
+    KEY_SIZE = 32             # to be 32 bytes, not 256 !!
     SALT_SIZE = 16
     HMAC_DIGESTMOD = hashlib.sha3_256
     HMAC_HASH_SIZE = 32
@@ -26,7 +26,7 @@ class Vault():
 
     @staticmethod
     def get_random_key(length=KEY_SIZE):
-        '''Returns random key produced by Crypto.Random.''' # Cryptodome currently in use
+        '''Return random key produced by Cryptodome.Random.'''
         return Random.new().read(length)
 
     @staticmethod
@@ -62,6 +62,7 @@ class Vault():
         return byte_data
 
     def iv(self):
+        '''Return initialization vector.'''
         return Random.new().read(AES.block_size)
 
     def pre_encrypt_data(self, data):
@@ -92,7 +93,7 @@ class Vault():
 
     def post_encrypt_data(self, data):
         '''
-        !!! Method used to store encrypted data in database.
+        !!! Method used to store encrypted data in database!!!
         :Arguments: bytes.
         :Return: bytes - base64 encoded data.
         '''
@@ -100,7 +101,7 @@ class Vault():
 
     def pre_decrypt_data(self, data):
         '''
-        !!! Method used to handle data retrieved from database.
+        !!! Method used to handle data retrieved from database!!!
         :Arguments: base64 bytes.
         :Return: bytes - data derived from base64.
         '''
@@ -111,8 +112,8 @@ class Vault():
     def decrypt(self, key, cipher_text):
         '''
         :Arguments:
-            key - 16, 24 or 32 bytes long correspond to AES128, 192, 256 respectively.
-            chipher_text - bytes.
+            key : 16, 24 or 32 bytes long correspond to AES128, 192, 256 respectively.
+            chipher_text : bytes.
         :Return: bytes.
         '''
         iv = cipher_text[:AES.block_size]
@@ -121,17 +122,14 @@ class Vault():
 
     def post_decrypt_data(self, data):
         '''
+        Remove padding.
         :Arguments: bytes.
         :Return: bytes.
-        Remove padding.
         '''
         padding = data[-1]
         return data[:-padding]
 
-    def kdf_salt(self):
-        return Random.new().read(self.SALT_SIZE)
-
-    def hmac_salt(self):
+    def get_salt(self):
         return Random.new().read(self.SALT_SIZE)
 
     def encrypt_enc_key(self, password, enc_key):
@@ -140,8 +138,8 @@ class Vault():
         Return (kdf_salt, hmac_salt, encrypted data, hmac(kdf_salt, hmac_salt, encrypted data)).
         hashlib.sha3_256 produces 32 bytes hash.
         '''
-        kdf_salt = self.kdf_salt()
-        hmac_salt = self.hmac_salt()
+        kdf_salt = self.get_salt()
+        hmac_salt = self.get_salt()
         iv = self.iv()
 
         encryption_key = KDF.PBKDF2(password, kdf_salt, dkLen=self.DK_LEN, count=self.KDF_COUNT, prf=None)
@@ -167,6 +165,16 @@ class Vault():
         enc_key = self.decrypt(encryption_key, data[self.SALT_SIZE*2:-self.HMAC_HASH_SIZE])
         return enc_key
 
+    def init_enc_key(self, password, enc_key):
+        enc_key = self.pre_encrypt_data(enc_key)
+        encrypted_enc_key = self.encrypt_enc_key(password, enc_key)
+        return self.post_encrypt_data(encrypted_enc_key)
+
+    def get_enc_key(self, master_password, encrypted_enc_key):
+        encrypted_enc_key = self.pre_decrypt_data(encrypted_enc_key)
+        enc_key = self.decrypt_enc_key(master_password, encrypted_enc_key)
+        return self.post_decrypt_data(enc_key)
+
     def set_encrypted_data(self, key, data):
         '''Combine some encryption methods in one call.'''
         iv = self.iv()
@@ -182,18 +190,22 @@ class Vault():
         post_decrypted_data = self.post_decrypt_data(decrypted_data)
         return post_decrypted_data
 
+    def init_vault_id(self):
+        vault_id = Random.new().read(self.VAULT_ID_LENGHT)
+        return self.encode_base64(vault_id)
+
 # ==============================================================================
     # to be refactored
     # salt to be added, otherwise same entry always will produce same hmac
     def sign(self, key, entry):
         key = self.to_bytes(key)
         entry = self.to_bytes(entry)
-        return hmac.new(key, entry, digestmod=hashlib.sha256).hexdigest()
+        return hmac.new(key, entry, digestmod=hashlib.sha3_256).hexdigest()
 
     def verify(self, key, entry, signature):
         key = self.to_bytes(key)
         entry = self.to_bytes(entry)
-        digest = hmac.new(key, entry, digestmod=hashlib.sha256).hexdigest()
+        digest = hmac.new(key, entry, digestmod=hashlib.sha3_256).hexdigest()
         if digest != signature:
             raise Exception('Bad signature!')
         return None

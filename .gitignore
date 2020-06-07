@@ -7,4 +7,4 @@ __pycache__/*
 myvenv/*
 static/*
 .DS_Store
-config.bash
+*.bash
