@@ -11,6 +11,7 @@ import hmac
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 from Cryptodome.Protocol import KDF
+from Cryptodome.Hash import SHA512
 
 
 class Vault():
@@ -22,6 +23,7 @@ class Vault():
     HMAC_HASH_SIZE = 32
     KDF_COUNT = 10000
     DK_LEN = 32
+    PBKDF_HMAC_HASH_MODULE = SHA512
     VAULT_ID_LENGHT = 32
 
     @staticmethod
@@ -35,6 +37,8 @@ class Vault():
             return s
         elif isinstance(s, str):
             return s.encode('utf-8')
+        else:
+            raise TypeError('Argument is nor *bytes* neither *str* !')
 
     @staticmethod
     def to_str(s):
@@ -42,6 +46,8 @@ class Vault():
             return s.decode('utf-8')
         elif isinstance(s, str):
             return s
+        else:
+            raise TypeError('Argument is nor *bytes* neither *str* !')
 
     @staticmethod
     def get_random_key_human_readable(key):
@@ -61,7 +67,7 @@ class Vault():
         byte_data = base64.b64decode(data)
         return byte_data
 
-    def iv(self):
+    def get_iv(self):
         '''Return initialization vector.'''
         return Random.new().read(AES.block_size)
 
@@ -140,10 +146,10 @@ class Vault():
         '''
         kdf_salt = self.get_salt()
         hmac_salt = self.get_salt()
-        iv = self.iv()
+        iv = self.get_iv()
 
-        encryption_key = KDF.PBKDF2(password, kdf_salt, dkLen=self.DK_LEN, count=self.KDF_COUNT, prf=None)
-        hmac_key = KDF.PBKDF2(password, hmac_salt, dkLen=self.DK_LEN, count=self.KDF_COUNT, prf=None)
+        encryption_key = KDF.PBKDF2(password, kdf_salt, dkLen=self.DK_LEN, count=self.KDF_COUNT, hmac_hash_module=self.PBKDF_HMAC_HASH_MODULE)
+        hmac_key = KDF.PBKDF2(password, hmac_salt, dkLen=self.DK_LEN, count=self.KDF_COUNT, hmac_hash_module=self.PBKDF_HMAC_HASH_MODULE)
         encrypted_enc_key = self.encrypt(encryption_key, iv, enc_key)
 
         data = kdf_salt + hmac_salt + encrypted_enc_key
@@ -154,8 +160,8 @@ class Vault():
         kdf_salt = data[:self.SALT_SIZE]
         hmac_salt = data[self.SALT_SIZE:self.SALT_SIZE*2]
 
-        encryption_key = KDF.PBKDF2(password, kdf_salt, dkLen=self.DK_LEN, count=self.KDF_COUNT, prf=None)
-        hmac_key = KDF.PBKDF2(password, hmac_salt, dkLen=self.DK_LEN, count=self.KDF_COUNT, prf=None)
+        encryption_key = KDF.PBKDF2(password, kdf_salt, dkLen=self.DK_LEN, count=self.KDF_COUNT, hmac_hash_module=self.PBKDF_HMAC_HASH_MODULE)
+        hmac_key = KDF.PBKDF2(password, hmac_salt, dkLen=self.DK_LEN, count=self.KDF_COUNT, hmac_hash_module=self.PBKDF_HMAC_HASH_MODULE)
 
         hmac_ = hmac.new(hmac_key, data[:-self.HMAC_HASH_SIZE], digestmod=self.HMAC_DIGESTMOD).digest()
 
@@ -177,7 +183,7 @@ class Vault():
 
     def set_encrypted_data(self, key, data):
         '''Combine some encryption methods in one call.'''
-        iv = self.iv()
+        iv = self.get_iv()
         plain_text = self.pre_encrypt_data(data)
         encrypted_data = self.encrypt(key, iv, plain_text)
         post_encrypted_data = self.post_encrypt_data(encrypted_data)
@@ -195,17 +201,15 @@ class Vault():
         return self.encode_base64(vault_id)
 
 # ==============================================================================
-    # to be refactored
-    # salt to be added, otherwise same entry always will produce same hmac
-    def sign(self, key, entry):
+    def sign(self, key, msg):
         key = self.to_bytes(key)
-        entry = self.to_bytes(entry)
-        return hmac.new(key, entry, digestmod=hashlib.sha3_256).hexdigest()
+        entry = self.to_bytes(msg)
+        return hmac.new(key, msg, digestmod=self.HMAC_DIGESTMOD).hexdigest()
 
-    def verify(self, key, entry, signature):
+    def verify(self, key, msg, signature):
         key = self.to_bytes(key)
-        entry = self.to_bytes(entry)
-        digest = hmac.new(key, entry, digestmod=hashlib.sha3_256).hexdigest()
+        entry = self.to_bytes(msg)
+        digest = hmac.new(key, msg, digestmod=self.HMAC_DIGESTMOD).hexdigest()
         if digest != signature:
             raise Exception('Bad signature!')
         return None

@@ -3,13 +3,10 @@
 
 import Passvault
 import unittest
-import time
 import os
 
 from base64 import b16decode
-from Cryptodome.Cipher import AES
 
-from test_aux_function import make_average
 from test_data_Passvault_encryption import IV
 from test_data_Passvault_encryption import KEYS
 from test_data_Passvault_encryption import PASSWORDS
@@ -98,6 +95,7 @@ class PassvaultTest(unittest.TestCase):
                 encrypted_message = self.vault.set_encrypted_data(password, plain_text)
                 decrypted_message = self.another_vault.get_decrypted_data(password, encrypted_message)
                 self.assertEqual(plain_text, decrypted_message.decode('utf-8'))
+
 
 if __name__ == '__main__':
     unittest.main()

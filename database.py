@@ -8,18 +8,14 @@
 # not implemented yet
 # Each Vault should have own id.
 # Each Vault should have authenticated number of entries.
-
-# not implemented yet
 # Every entry initializes with randomly generated password, salt and iv
 # Every entry authenticated with hmac - sha3_256
-# Every entry store hmac digest in separate field
+# Every entry stores hmac digest in separate field
+# all data => sqlite3, data export or text backup or visual representation => xml/json
 
 # enc_key - random key used to encrypt user passwords provided by Cryptodome.Random
 # stored_enc_key - encrypted and stored master_key
 # password - user password used in PBKDF2 for encription/decryption of master_key
-
-# not implemented yet
-# all data => sqlite3, data export or text backup or visual representation => xml/json
 
 
 import os
@@ -29,6 +25,8 @@ import Passvault
 import database_model as dbm
 
 from Cryptodome import Random
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 from config import Config
 
@@ -36,83 +34,51 @@ from config import Config
 PASSWORD_SIZE = 32
 MAX_ROW_COUNT = 100
 ENTRY_FIELDS = ('group_id', 'account_name', 'login', 'url', 'memo')
-VAULT_ID_LENGHT = 32
-
-'''
-database structure (not fully implemented!):
-TABLE vault
-	* id
-	* vault_id
-	* creation date and time
-	* modification date and time
-	* encrypted_enc_key
-	* sha256(encrypted_enc_key)
-	* version of database schema
-	* version of cryptographycal function applied
-	* version of module
-TABLE entries (TABLE password)
-	* id (generally, entry number)
-	* group_id
-	* account_name
-	* login
-	* url
-	* encrypted password
-	* memo
-TABLE trashbin (deleted entries)
-	* id (generally, entry number)
-	* previous_id
-	* account_name
-	* login
-	* url
-	* encrypted password
-	* memo
-TABLE groups
-	* group_id
-	* group_name
-'''
+# VAULT_ID_LENGHT = 32
 
 
 class Database(Passvault.Vault):
 
 	def __init__(self, path=None):
-		# self.conn = None
-		# self.cur = None
 		self.enc_key = None
 		self.master_password = Config['MASTER_PASSWORD']
 		self.path = Config['DIRECTORY'] + os.sep + Config['DATABASE_NAME']
-		self.session = dbm.init_db(self.path)
+		self.engine = create_engine('sqlite:///' + self.path)
+		Session = sessionmaker(bind=self.engine)
+		self.session = Session()
 
-	def init_vault_id(self):
-		vault_id = Random.new().read(VAULT_ID_LENGHT)
-		return Passvault.Vault.encode_base64(vault_id)
-
-	def init_encrypted_enc_key(self, password, enc_key):
-		f = Passvault.Vault()
-		enc_key = f.pre_encrypt_data(enc_key)
-		encrypted_enc_key = f.encrypt_enc_key(password, enc_key)
-		return f.post_encrypt_data(encrypted_enc_key)
-
-	def init_database(self, password):
-		vault_id_ = self.init_vault_id()
-		enc_key = self.get_random_key()
-		encrypted_enc_key_ = self.init_encrypted_enc_key(password, enc_key)
-		try:
-			vault = dbm.Vault(vault_id=vault_id_, encrypted_enc_key=encrypted_enc_key_, \
-								db_schema_version='1', crypto_version='1', passvault_app_version='1')
-			self.session.add(vault)
-			self.session.commit()
-		except Exception as err:
-			print('Error occured')
-			print(err)
-			self.session.rollback()
-		return None
+	# def init_vault_id(self):
+	# 	vault_id = Random.new().read(VAULT_ID_LENGHT)
+	# 	return Passvault.Vault.encode_base64(vault_id)
+	#
+	# def init_encrypted_enc_key(self, password, enc_key):
+	# 	f = Passvault.Vault()
+	# 	enc_key = f.pre_encrypt_data(enc_key)
+	# 	encrypted_enc_key = f.encrypt_enc_key(password, enc_key)
+	# 	return f.post_encrypt_data(encrypted_enc_key)
+	#
+	# def init_database(self, password):
+	# 	vault_id_ = self.init_vault_id()
+	# 	enc_key = self.get_random_key()
+	# 	encrypted_enc_key_ = self.init_encrypted_enc_key(password, enc_key)
+	# 	try:
+	# 		vault = dbm.Vault(vault_id=vault_id_, encrypted_enc_key=encrypted_enc_key_, \
+	# 							db_schema_version='1', crypto_version='1', passvault_app_version='1')
+	# 		self.session.add(vault)
+	# 		self.session.commit()
+	# 	except Exception as err:
+	# 		print('Error occured')
+	# 		print(err)
+	# 		self.session.rollback()
+	# 	return None
 
 	def decrypt_enc_key(self, master_password):
 		encrypted_enc_key = self.session.query(dbm.Vault.encrypted_enc_key).first()
-		encrypted_enc_key = self.pre_decrypt_data(encrypted_enc_key)
-		# TODO: try-except-else-finally
-		enc_key = self.decrypt_enc_key(master_password, encrypted_enc_key)
-		self.enc_key = self.post_decrypt_data(enc_key)
+		# encrypted_enc_key = self.pre_decrypt_data(encrypted_enc_key)
+		# # TODO: try-except-else-finally
+		# enc_key = self.decrypt_enc_key(master_password, encrypted_enc_key)
+		# self.enc_key = self.post_decrypt_data(enc_key)
+		self.get_enc_key(self, master_password, encrypted_enc_key)
 		print('Password decrypted sucсessfully!')
 		return None
 

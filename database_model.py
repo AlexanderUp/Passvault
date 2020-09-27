@@ -17,7 +17,7 @@ metadata = MetaData()
 
 table_vault = Table('vault', metadata,
                     Column('id', Integer, primary_key=True),
-                    Column('vault_id', Integer, nullable=False),
+                    Column('vault_id', String, nullable=False),
                     Column('encrypted_enc_key', String, nullable=False, unique=True),
                     Column('created_on', DateTime, default=datetime.now),
                     Column('updated_on', DateTime, default=datetime.now, onupdate=datetime.now),
