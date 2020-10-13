@@ -28,7 +28,9 @@ class Vault():
 
     @staticmethod
     def get_random_key(length=KEY_SIZE):
-        '''Return random key produced by Cryptodome.Random.'''
+        '''
+        Returns random key produced by Cryptodome.Random.
+        '''
         return Random.new().read(length)
 
     @staticmethod
@@ -55,7 +57,9 @@ class Vault():
 
     @staticmethod
     def encode_base64(data):
-        '''Encode the bytes-like object using Base64 and return a str object.'''
+        '''
+        Encodes the bytes-like object using Base64 and return a str object.
+        '''
         return Vault.to_str(base64.b64encode(data))
 
     @staticmethod
@@ -64,17 +68,26 @@ class Vault():
         Decode the Base64 encoded bytes-like object or ASCII string.
         The result is returned as a bytes object.
         '''
-        byte_data = base64.b64decode(data)
-        return byte_data
+        bytes_data = base64.b64decode(data)
+        return bytes_data
+
+    def init_vault_id(self):
+        '''
+        Returns string.
+        '''
+        vault_id = self.get_random_key(length=self.VAULT_ID_LENGHT)
+        return self.encode_base64(vault_id)
 
     def get_iv(self):
-        '''Return initialization vector.'''
+        '''
+        Returns initialization vector.
+        '''
         return Random.new().read(AES.block_size)
 
     def pre_encrypt_data(self, data):
         '''
         :Arguments: string or bytes.
-        :Return: bytes - data with padding applied.
+        :Returns: bytes - data with padding applied.
         '''
         data = self.to_bytes(data)
         padding = AES.block_size - len(data) % AES.block_size
@@ -91,7 +104,7 @@ class Vault():
                 The initialization vector to use for encryption or decryption.
             plain_text: byte string.
                 Piece of data to encrypt.
-        :Return:
+        :Returns:
             encrypted data as a byte string.
         '''
         cipher = AES.new(key, self.AES_MODE, iv)
@@ -99,17 +112,19 @@ class Vault():
 
     def post_encrypt_data(self, data):
         '''
-        !!! Method used to store encrypted data in database!!!
+        Method used to store encrypted data in database.
+
         :Arguments: bytes.
-        :Return: bytes - base64 encoded data.
+        :Returns: string.
         '''
         return self.encode_base64(data)
 
     def pre_decrypt_data(self, data):
         '''
-        !!! Method used to handle data retrieved from database!!!
-        :Arguments: base64 bytes.
-        :Return: bytes - data derived from base64.
+        Method used to handle data retrieved from database.
+
+        :Arguments: base64 bytes or string.
+        :Returns: bytes - data derived from base64.
         '''
         data = self.to_bytes(data)
         data = self.decode_base64(data)
@@ -120,7 +135,7 @@ class Vault():
         :Arguments:
             key : 16, 24 or 32 bytes long correspond to AES128, 192, 256 respectively.
             chipher_text : bytes.
-        :Return: bytes.
+        :Returns: bytes.
         '''
         iv = cipher_text[:AES.block_size]
         cipher = AES.new(key, self.AES_MODE, iv)
@@ -129,60 +144,136 @@ class Vault():
     def post_decrypt_data(self, data):
         '''
         Remove padding.
+
         :Arguments: bytes.
-        :Return: bytes.
+        :Returns: bytes.
         '''
         padding = data[-1]
         return data[:-padding]
 
     def get_salt(self):
+        '''
+        Returns salt.
+        '''
         return Random.new().read(self.SALT_SIZE)
 
-    def encrypt_enc_key(self, password, enc_key):
+    def encrypt_master_key(self, master_password, master_key):
+
         '''
         dkLen=32 corresponds to AES256 key (32 bytes).
         Return (kdf_salt, hmac_salt, encrypted data, hmac(kdf_salt, hmac_salt, encrypted data)).
         hashlib.sha3_256 produces 32 bytes hash.
+
+        :Arguments:
+            master_password: string or byte string
+            master_key: bytes
+
+        :Returns:
+            bytes
+
+        [
+        PBKDF2 :Arguments:
+             password: string or byte string
+             salt: string or byte string
+             dkLen: integer
+             count: integer
+             prf: callable
+             hmac_hash_module: module
+
+        PBKDF2 :Returns:
+            A byte string of length ``dkLen`` that can be used as key material.
+        ]
         '''
+
         kdf_salt = self.get_salt()
         hmac_salt = self.get_salt()
         iv = self.get_iv()
 
-        encryption_key = KDF.PBKDF2(password, kdf_salt, dkLen=self.DK_LEN, count=self.KDF_COUNT, hmac_hash_module=self.PBKDF_HMAC_HASH_MODULE)
-        hmac_key = KDF.PBKDF2(password, hmac_salt, dkLen=self.DK_LEN, count=self.KDF_COUNT, hmac_hash_module=self.PBKDF_HMAC_HASH_MODULE)
-        encrypted_enc_key = self.encrypt(encryption_key, iv, enc_key)
+        encryption_key = KDF.PBKDF2(master_password, kdf_salt, dkLen=self.DK_LEN, count=self.KDF_COUNT, hmac_hash_module=self.PBKDF_HMAC_HASH_MODULE)
+        hmac_key = KDF.PBKDF2(master_password, hmac_salt, dkLen=self.DK_LEN, count=self.KDF_COUNT, hmac_hash_module=self.PBKDF_HMAC_HASH_MODULE)
+        encrypted_master_key = self.encrypt(encryption_key, iv, master_key)
 
-        data = kdf_salt + hmac_salt + encrypted_enc_key
+        data = kdf_salt + hmac_salt + encrypted_master_key
         data += hmac.new(hmac_key, data, digestmod=self.HMAC_DIGESTMOD).digest()
         return data
 
-    def decrypt_enc_key(self, password, data):
+    def decrypt_master_key(self, master_password, data):
+
+        '''
+        dkLen=32 corresponds to AES256 key (32 bytes).
+        Return (kdf_salt, hmac_salt, encrypted data, hmac(kdf_salt, hmac_salt, encrypted data)).
+        hashlib.sha3_256 produces 32 bytes hash.
+
+        :Arguments:
+            master_password: string or byte string
+            data: bytes
+
+        :Returns:
+            bytes
+
+        [
+        PBKDF2 :Arguments:
+             password: string or byte string
+             salt: string or byte string
+             dkLen: integer
+             count: integer
+             prf: callable
+             hmac_hash_module: module
+
+        PBKDF2 :Returns:
+            A byte string of length ``dkLen`` that can be used as key material.
+        ]
+        '''
+
         kdf_salt = data[:self.SALT_SIZE]
         hmac_salt = data[self.SALT_SIZE:self.SALT_SIZE*2]
 
-        encryption_key = KDF.PBKDF2(password, kdf_salt, dkLen=self.DK_LEN, count=self.KDF_COUNT, hmac_hash_module=self.PBKDF_HMAC_HASH_MODULE)
-        hmac_key = KDF.PBKDF2(password, hmac_salt, dkLen=self.DK_LEN, count=self.KDF_COUNT, hmac_hash_module=self.PBKDF_HMAC_HASH_MODULE)
+        encryption_key = KDF.PBKDF2(master_password, kdf_salt, dkLen=self.DK_LEN, count=self.KDF_COUNT, hmac_hash_module=self.PBKDF_HMAC_HASH_MODULE)
+        hmac_key = KDF.PBKDF2(master_password, hmac_salt, dkLen=self.DK_LEN, count=self.KDF_COUNT, hmac_hash_module=self.PBKDF_HMAC_HASH_MODULE)
 
         hmac_ = hmac.new(hmac_key, data[:-self.HMAC_HASH_SIZE], digestmod=self.HMAC_DIGESTMOD).digest()
 
         if hmac_ != data[-self.HMAC_HASH_SIZE:]:
             raise Exception('Bad hmac!')
 
-        enc_key = self.decrypt(encryption_key, data[self.SALT_SIZE*2:-self.HMAC_HASH_SIZE])
-        return enc_key
+        master_key = self.decrypt(encryption_key, data[self.SALT_SIZE*2:-self.HMAC_HASH_SIZE])
+        return master_key
 
-    def init_enc_key(self, password, enc_key):
-        enc_key = self.pre_encrypt_data(enc_key)
-        encrypted_enc_key = self.encrypt_enc_key(password, enc_key)
-        return self.post_encrypt_data(encrypted_enc_key)
+    def init_master_key(self, master_password, master_key):
+        '''
+        :Arguments:
+            master_password: string or byte string
+            master_key: bytes string
+        :Returns:
+            string
+        '''
+        master_key = self.pre_encrypt_data(master_key)
+        encrypted_master_key = self.encrypt_master_key(master_password, master_key)
+        encrypted_master_key = self.post_encrypt_data(encrypted_master_key)
+        return self.to_str(encrypted_master_key)
 
-    def get_enc_key(self, master_password, encrypted_enc_key):
-        encrypted_enc_key = self.pre_decrypt_data(encrypted_enc_key)
-        enc_key = self.decrypt_enc_key(master_password, encrypted_enc_key)
-        return self.post_decrypt_data(enc_key)
+    def get_master_key(self, master_password, encrypted_master_key):
+        '''
+        :Arguments:
+            master_password: string or byte string
+            encrypted_master_key: string or bytes string
+        :Returns:
+            bytes
+        '''
+        encrypted_master_key = self.pre_decrypt_data(encrypted_master_key)
+        master_key = self.decrypt_master_key(master_password, encrypted_master_key)
+        return self.post_decrypt_data(master_key)
 
     def set_encrypted_data(self, key, data):
-        '''Combine some encryption methods in one call.'''
+        '''
+        Combine some encryption methods in one call.
+
+        :Arguments:
+            key: bytes
+            data: string or bytes string
+        :Returns:
+            bytes
+        '''
         iv = self.get_iv()
         plain_text = self.pre_encrypt_data(data)
         encrypted_data = self.encrypt(key, iv, plain_text)
@@ -190,15 +281,19 @@ class Vault():
         return post_encrypted_data
 
     def get_decrypted_data(self, key, encrypted_data):
-        '''Combine some decryption methods in one call.'''
+        '''
+        Combine some decryption methods in one call.
+
+        :Arguments:
+            key: bytes
+            encrypted_data: bytes
+        :Returns:
+            bytes
+        '''
         pre_decrypted_data = self.pre_decrypt_data(encrypted_data)
         decrypted_data = self.decrypt(key, pre_decrypted_data)
         post_decrypted_data = self.post_decrypt_data(decrypted_data)
         return post_decrypted_data
-
-    def init_vault_id(self):
-        vault_id = Random.new().read(self.VAULT_ID_LENGHT)
-        return self.encode_base64(vault_id)
 
 # ==============================================================================
     def sign(self, key, msg):

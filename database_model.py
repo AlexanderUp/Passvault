@@ -18,7 +18,7 @@ metadata = MetaData()
 table_vault = Table('vault', metadata,
                     Column('id', Integer, primary_key=True),
                     Column('vault_id', String, nullable=False),
-                    Column('encrypted_enc_key', String, nullable=False, unique=True),
+                    Column('encrypted_master_key', String, nullable=False, unique=True),
                     Column('created_on', DateTime, default=datetime.now),
                     Column('updated_on', DateTime, default=datetime.now, onupdate=datetime.now),
                     Column('db_schema_version', String, nullable=False),
@@ -41,10 +41,10 @@ table_group = Table('groups', metadata,
 
 class Vault():
 
-    def __init__(self, vault_id, encrypted_enc_key, db_schema_version, \
+    def __init__(self, vault_id, encrypted_master_key, db_schema_version, \
                 crypto_version, passvault_app_version):
         self.vault_id = vault_id
-        self.encrypted_enc_key = encrypted_enc_key
+        self.encrypted_master_key = encrypted_master_key
         self.db_schema_version = db_schema_version
         self.crypto_version = crypto_version
         self.passvault_app_version = passvault_app_version

@@ -30,7 +30,7 @@ class DatabaseModelTest(unittest.TestCase):
 
     def test_insertion(self):
         v = dbm.Vault(vault_id=1,
-                    encrypted_enc_key='111111',
+                    encrypted_master_key='111111',
                     db_schema_version='1',
                     crypto_version='1',
                     passvault_app_version='1')

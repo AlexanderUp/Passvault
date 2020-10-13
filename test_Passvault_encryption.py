@@ -67,33 +67,33 @@ class PassvaultTest(unittest.TestCase):
                 self.assertEqual(test_text, decrypted_text.decode('utf-8'))
 
     def test_master_key_encryption(self):
-        for enc_key in KEYS:
-            enc_key = b16decode(enc_key)
-            for password in PASSWORDS:
-                pre_enc_key = self.vault.pre_encrypt_data(enc_key)
-                encrypted_enc_key = self.vault.encrypt_enc_key(password, pre_enc_key)
-                encrypted_enc_key = self.vault.post_encrypt_data(encrypted_enc_key)
+        for master_key in KEYS:
+            master_key = b16decode(master_key)
+            for master_password in PASSWORDS:
+                pre_master_key = self.vault.pre_encrypt_data(master_key)
+                encrypted_master_key = self.vault.encrypt_master_key(master_password, pre_master_key)
+                encrypted_master_key = self.vault.post_encrypt_data(encrypted_master_key)
 
-                encrypted_enc_key = self.vault.pre_decrypt_data(encrypted_enc_key)
-                decrypted_enc_key = self.vault.decrypt_enc_key(password, encrypted_enc_key)
-                decrypted_enc_key = self.vault.post_decrypt_data(decrypted_enc_key)
-                self.assertEqual(enc_key, decrypted_enc_key)
+                encrypted_master_key = self.vault.pre_decrypt_data(encrypted_master_key)
+                decrypted_master_key = self.vault.decrypt_master_key(master_password, encrypted_master_key)
+                decrypted_master_key = self.vault.post_decrypt_data(decrypted_master_key)
+                self.assertEqual(master_key, decrypted_master_key)
 
     def test_master_key_encryption_short(self):
         for key in KEYS:
-            enc_key = b16decode(key)
+            master_key = b16decode(key)
             for master_password in PASSWORDS:
-                enc_key_encrypted = self.vault.init_enc_key(master_password, enc_key)
-                enc_key_decrypted = self.vault.get_enc_key(master_password, enc_key_encrypted)
-                self.assertEqual(enc_key_decrypted, enc_key)
+                master_key_encrypted = self.vault.init_master_key(master_password, master_key)
+                master_key_decrypted = self.vault.get_master_key(master_password, master_key_encrypted)
+                self.assertEqual(master_key_decrypted, master_key)
 
     def test_get_encrypted_decrypted_data(self):
         self.assertNotEqual(id(self.vault), id(self.another_vault))
         passwords = (os.urandom(self.vault.KEY_SIZE) for i in range(512))
-        for password in passwords:
+        for master_password in passwords:
             for plain_text in PLAIN_TEXTS:
-                encrypted_message = self.vault.set_encrypted_data(password, plain_text)
-                decrypted_message = self.another_vault.get_decrypted_data(password, encrypted_message)
+                encrypted_message = self.vault.set_encrypted_data(master_password, plain_text)
+                decrypted_message = self.another_vault.get_decrypted_data(master_password, encrypted_message)
                 self.assertEqual(plain_text, decrypted_message.decode('utf-8'))
 
 

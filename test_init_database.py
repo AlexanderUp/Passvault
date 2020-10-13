@@ -7,6 +7,7 @@ from sqlalchemy import inspect
 
 import database_model as dbm
 from init_database import DBInitializer
+from Passvault import Vault
 
 
 PASSWORD = 'testtesttest'
@@ -17,8 +18,10 @@ class DBInitializerTest(unittest.TestCase):
 
     def setUp(self):
         self.path = ':memory:'
+        self.master_password = 'testtesttest'
         self.db_initializer = DBInitializer(self.path)
-        self.db_initializer.init_database('testtesttest')
+        self.db_initializer.init_database(self.master_password)
+        self.vault = Vault()
 
     def tearDown(self):
         pass
@@ -35,7 +38,13 @@ class DBInitializerTest(unittest.TestCase):
         row = query.first()
         self.assertIsNotNone(row.id)
         self.assertIsNotNone(row.vault_id)
-        self.assertIsNotNone(row.encrypted_enc_key)
+        self.assertIsNotNone(row.encrypted_master_key)
+
+    def test_master_key_decryption(self):
+        query = self.db_initializer.session.query(dbm.Vault).first()
+        encrypted_master_key = query.encrypted_master_key
+        master_key = self.vault.get_master_key(self.master_password, encrypted_master_key)
+        self.assertIsNotNone(master_key)
 
 
 if __name__ == '__main__':

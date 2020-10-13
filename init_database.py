@@ -25,18 +25,18 @@ class DBInitializer():
         self.session = Session()
         self.vault = Passvault.Vault()
 
-    def init_database(self, password):
+    def init_database(self, master_password):
         vault_id = self.vault.init_vault_id()
-        enc_key = self.vault.get_random_key()
-        encrypted_enc_key = self.vault.init_enc_key(password, enc_key)
-        vault = dbm.Vault(vault_id=vault_id, encrypted_enc_key=encrypted_enc_key, \
+        master_key = self.vault.get_random_key()
+        encrypted_master_key = self.vault.init_master_key(master_password, master_key)
+        vault = dbm.Vault(vault_id=vault_id, encrypted_master_key=encrypted_master_key, \
                             db_schema_version='1.0.0', crypto_version='1.0.0', passvault_app_version='1.0.0')
         try:
             self.session.add(vault)
             self.session.commit()
         except Exception as err:
             print('Error occured')
-            print(err.upper())
+            print(err)
             self.session.rollback()
         return None
 
@@ -45,9 +45,9 @@ if __name__ == '__main__':
     import os
     print('*' * 125)
     path = ':memory:'
-    password = 'testtesttest'
+    master_password = 'testtesttest'
     dbi = DBInitializer(path)
-    dbi.init_database(password)
+    dbi.init_database(master_password)
     query = dbi.session.query(dbm.Vault)
     print('query', query, sep=': ')
     vault_id_count = query.count()
