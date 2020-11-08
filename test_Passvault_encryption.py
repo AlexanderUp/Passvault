@@ -92,7 +92,7 @@ class PassvaultTest(unittest.TestCase):
         passwords = (os.urandom(self.vault.KEY_SIZE) for i in range(512))
         for master_password in passwords:
             for plain_text in PLAIN_TEXTS:
-                encrypted_message = self.vault.set_encrypted_data(master_password, plain_text)
+                encrypted_message = self.vault.get_encrypted_data(master_password, plain_text)
                 decrypted_message = self.another_vault.get_decrypted_data(master_password, encrypted_message)
                 self.assertEqual(plain_text, decrypted_message.decode('utf-8'))
 

@@ -115,7 +115,7 @@ class Database():
 
 	def set_encrypted_password(self):
 		password = self.vault.get_random_key()
-		encrypted_password = self.vault.set_encrypted_data(self.master_key, password) # key, data
+		encrypted_password = self.vault.get_encrypted_data(self.master_key, password) # key, data
 		return encrypted_password
 
 	def create_password_entry(self):
