@@ -169,7 +169,7 @@ class Vault():
             master_key: bytes
 
         :Returns:
-            bytes
+            bytes (total 112 bytes in lenght)
 
         [
         PBKDF2 :Arguments:
@@ -264,7 +264,7 @@ class Vault():
         master_key = self.decrypt_master_key(master_password, encrypted_master_key)
         return self.post_decrypt_data(master_key)
 
-    def set_encrypted_data(self, key, data):
+    def get_encrypted_data(self, key, data):
         '''
         Combine some encryption methods in one call.
 
@@ -275,8 +275,8 @@ class Vault():
             bytes
         '''
         iv = self.get_iv()
-        plain_text = self.pre_encrypt_data(data)
-        encrypted_data = self.encrypt(key, iv, plain_text)
+        plain_data = self.pre_encrypt_data(data)
+        encrypted_data = self.encrypt(key, iv, plain_data)
         post_encrypted_data = self.post_encrypt_data(encrypted_data)
         return post_encrypted_data
 
@@ -295,7 +295,44 @@ class Vault():
         post_decrypted_data = self.post_decrypt_data(decrypted_data)
         return post_decrypted_data
 
-# ==============================================================================
+    def encrypt_file(self, master_password, file):
+        '''
+        Encrypt specified file.
+        '''
+        master_key = self.get_random_key()
+        encrypted_master_key = self.encrypt_master_key(master_password, master_key)
+        with open(file, 'rb') as in_file:
+            data = in_file.read()
+        data = self.pre_encrypt_data(data)
+        iv = self.get_iv()
+        encrypted_data = encrypted_master_key + self.encrypt(master_key, iv, data)
+        out_file_name = file + '.encrypted'
+        with open(out_file_name, 'wb') as out_file:
+            out_file.write(encrypted_data)
+        return None
+
+    def decrypt_file(self, master_password, encrypted_file):
+        '''
+        Decrypt specified file.
+        '''
+        with open(encrypted_file, 'rb') as in_file:
+            encrypted_data = in_file.read()
+        encryped_master_key = encrypted_data[:112]
+        encrypted_data = encrypted_data[112:]
+        master_key = self.decrypt_master_key(master_password, encryped_master_key)
+        decrypted_data = self.decrypt(master_key, encrypted_data)
+        plain_data = self.post_decrypt_data(decrypted_data)
+        # !!! Addition of suffix '.decrypted' should be removed !!!
+        # !!! It'll be resulted in overwriting original file !!!
+        # !!! In real case original file should be deleted after encryption
+        # and this method will restore original file !!!
+        out_file_name = encrypted_file.replace('encrypted', 'decrypted')
+        with open(out_file_name, 'wb') as out_file:
+            out_file.write(plain_data)
+        return None
+
+
+# =========================== !!! NOT IMPLEMENTED !!! ==========================
     def sign(self, key, msg):
         key = self.to_bytes(key)
         entry = self.to_bytes(msg)

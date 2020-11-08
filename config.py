@@ -21,3 +21,8 @@ class TestEntry():
 	URL = 'rick.sanchezzz@mail.space'
 	GROUP_ID = 'Mail'
 	MEMO = 'Do not tell password to Morty!'
+
+
+class FileCryptorTestConfig():
+    PLAIN_FILE = os.environ.get('PLAIN_FILE')
+    MASTER_PASSWORD = bytes(os.environ.get('MASTER_PASSWORD'), 'utf-8')
