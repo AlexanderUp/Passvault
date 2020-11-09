@@ -15,7 +15,7 @@ class FileCryptorTest(unittest.TestCase):
 
     def setUp(self):
         conf = config.FileCryptorTestConfig()
-        self.vault = Passvault.Vault()
+        self.vault = Passvault.FileCipher()
         self.master_password = conf.MASTER_PASSWORD
         self.plain_file_path = conf.PLAIN_FILE
         self.encrypted_file_path = conf.PLAIN_FILE + '.encrypted'

@@ -7,7 +7,7 @@ from sqlalchemy import inspect
 
 import database_model as dbm
 from init_database import DBInitializer
-from Passvault import Vault
+from Passvault import PasswordCipher
 
 
 PASSWORD = 'testtesttest'
@@ -21,7 +21,7 @@ class DBInitializerTest(unittest.TestCase):
         self.master_password = 'testtesttest'
         self.db_initializer = DBInitializer(self.path)
         self.db_initializer.init_database(self.master_password)
-        self.vault = Vault()
+        self.vault = PasswordCipher()
 
     def tearDown(self):
         pass

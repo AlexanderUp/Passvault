@@ -5,7 +5,7 @@ import unittest
 
 from Cryptodome.Cipher import AES
 from base64 import b16encode, b16decode
-from test_aux_function import pad_with_zeroes
+from aux import pad_with_zeroes
 
 
 class AES_ECB_MTC_Test(unittest.TestCase):

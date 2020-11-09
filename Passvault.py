@@ -239,6 +239,9 @@ class Vault():
         master_key = self.decrypt(encryption_key, data[self.SALT_SIZE*2:-self.HMAC_HASH_SIZE])
         return master_key
 
+
+class PasswordCipher(Vault):
+
     def init_master_key(self, master_password, master_key):
         '''
         :Arguments:
@@ -295,6 +298,10 @@ class Vault():
         post_decrypted_data = self.post_decrypt_data(decrypted_data)
         return post_decrypted_data
 
+
+
+class FileCipher(Vault):
+
     def encrypt_file(self, master_password, file):
         '''
         Encrypt specified file.
@@ -330,19 +337,3 @@ class Vault():
         with open(out_file_name, 'wb') as out_file:
             out_file.write(plain_data)
         return None
-
-
-# =========================== !!! NOT IMPLEMENTED !!! ==========================
-    def sign(self, key, msg):
-        key = self.to_bytes(key)
-        entry = self.to_bytes(msg)
-        return hmac.new(key, msg, digestmod=self.HMAC_DIGESTMOD).hexdigest()
-
-    def verify(self, key, msg, signature):
-        key = self.to_bytes(key)
-        entry = self.to_bytes(msg)
-        digest = hmac.new(key, msg, digestmod=self.HMAC_DIGESTMOD).hexdigest()
-        if digest != signature:
-            raise Exception('Bad signature!')
-        return None
-# ==============================================================================
