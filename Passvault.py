@@ -298,13 +298,9 @@ class PasswordCipher(Vault):
         post_decrypted_data = self.post_decrypt_data(decrypted_data)
         return post_decrypted_data
 
-<<<<<<< HEAD
-
 
 class FileCipher(Vault):
 
-=======
->>>>>>> f2f76a7a9975cd97df706b73af01288b76a81db7
     def encrypt_file(self, master_password, file):
         '''
         Encrypt specified file.
@@ -339,22 +335,4 @@ class FileCipher(Vault):
         out_file_name = encrypted_file.replace('encrypted', 'decrypted')
         with open(out_file_name, 'wb') as out_file:
             out_file.write(plain_data)
-<<<<<<< HEAD
-=======
-        return None
-
-
-# ==============================================================================
-    def sign(self, key, msg):
-        key = self.to_bytes(key)
-        entry = self.to_bytes(msg)
-        return hmac.new(key, msg, digestmod=self.HMAC_DIGESTMOD).hexdigest()
-
-    def verify(self, key, msg, signature):
-        key = self.to_bytes(key)
-        entry = self.to_bytes(msg)
-        digest = hmac.new(key, msg, digestmod=self.HMAC_DIGESTMOD).hexdigest()
-        if digest != signature:
-            raise Exception('Bad signature!')
->>>>>>> f2f76a7a9975cd97df706b73af01288b76a81db7
         return None

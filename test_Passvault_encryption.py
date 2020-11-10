@@ -79,26 +79,6 @@ class PassvaultTest(unittest.TestCase):
                 decrypted_master_key = self.vault.post_decrypt_data(decrypted_master_key)
                 self.assertEqual(master_key, decrypted_master_key)
 
-<<<<<<< HEAD
-=======
-    def test_master_key_encryption_short(self):
-        for key in KEYS:
-            master_key = b16decode(key)
-            for master_password in PASSWORDS:
-                master_key_encrypted = self.vault.init_master_key(master_password, master_key)
-                master_key_decrypted = self.vault.get_master_key(master_password, master_key_encrypted)
-                self.assertEqual(master_key_decrypted, master_key)
-
-    def test_get_encrypted_decrypted_data(self):
-        self.assertNotEqual(id(self.vault), id(self.another_vault))
-        passwords = (os.urandom(self.vault.KEY_SIZE) for i in range(512))
-        for master_password in passwords:
-            for plain_text in PLAIN_TEXTS:
-                encrypted_message = self.vault.get_encrypted_data(master_password, plain_text)
-                decrypted_message = self.another_vault.get_decrypted_data(master_password, encrypted_message)
-                self.assertEqual(plain_text, decrypted_message.decode('utf-8'))
-
->>>>>>> f2f76a7a9975cd97df706b73af01288b76a81db7
 
 if __name__ == '__main__':
     unittest.main()
